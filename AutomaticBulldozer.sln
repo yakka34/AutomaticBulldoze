@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2016
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutomaticBulldozer", "AutomaticBulldozer.csproj", "{CA7F7CC4-95BC-4817-9EEB-C7DA1845DFF3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CA7F7CC4-95BC-4817-9EEB-C7DA1845DFF3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA7F7CC4-95BC-4817-9EEB-C7DA1845DFF3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA7F7CC4-95BC-4817-9EEB-C7DA1845DFF3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA7F7CC4-95BC-4817-9EEB-C7DA1845DFF3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3C6C46EE-5E1A-4850-82F2-226B2B3A357F}
+	EndGlobalSection
+EndGlobal
