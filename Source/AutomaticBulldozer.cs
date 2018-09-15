@@ -1,11 +1,12 @@
-﻿using System;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using ColossalFramework;
 using ICities;
 
-namespace AutomaticBulldozer.Source
+namespace AutomaticBulldoze.Source
 {
-    public class Info : IUserMod
+    public class AutomaticBulldozeInfo : IUserMod
     {
         public string Name
         {
@@ -18,7 +19,7 @@ namespace AutomaticBulldozer.Source
         }
     }
 
-    public class Loader : LoadingExtensionBase
+    public class AutomaticBulldozeLoader : LoadingExtensionBase
     {
         private AutomaticBulldozer _automaticBulldozer;
 
@@ -34,6 +35,7 @@ namespace AutomaticBulldozer.Source
             {
                 _automaticBulldozer.Destroy();
             }
+
             _automaticBulldozer = null;
             base.OnLevelUnloading();
         }
@@ -42,12 +44,14 @@ namespace AutomaticBulldozer.Source
     public class AutomaticBulldozer
     {
         private readonly BuildingManager _buildingManager;
-        private readonly BuildingObserver _observer;
+        private readonly BuildingObserver _buildingObserver;
+        private readonly SimulationManager _simulationManager;
 
         public AutomaticBulldozer()
         {
             _buildingManager = Singleton<BuildingManager>.instance;
-            _observer = new BuildingObserver(FindExistingBuildings());
+            _simulationManager = Singleton<SimulationManager>.instance;
+            _buildingObserver = new BuildingObserver(FindExistingBuildings());
             BindEvents();
         }
 
@@ -59,27 +63,51 @@ namespace AutomaticBulldozer.Source
         private void OnSimulationSecondPassed(object source, EventArgs args)
         {
             var abandonedBuildings = FindAbandonedBuildings();
-            if (abandonedBuildings.Count > 0) DestroyBuildings(abandonedBuildings);
+            if (abandonedBuildings.Count > 0)
+            {
+                DestroyBuildings(abandonedBuildings);
+            }
         }
 
         private void DestroyBuildings(IEnumerable<ushort> abandonedBuildingIds)
         {
             foreach (var buildingId in abandonedBuildingIds)
             {
-                if (_buildingManager.m_buildings.m_buffer[buildingId].Info.m_buildingAI.CheckBulldozing(buildingId, ref _buildingManager.m_buildings.m_buffer[buildingId]) != ToolBase.ToolErrors.None) return;
-                _buildingManager.ReleaseBuilding(buildingId);
+                if (_buildingObserver.BuildingsIds.Contains(buildingId))
+                {
+                    _simulationManager.AddAction(BulldozeBuilding(buildingId));
+                    _buildingObserver.BuildingsIds.Remove(buildingId);
+                }
             }
+        }
+
+        //Colossal please, provide API for bulldozing!
+        private IEnumerator BulldozeBuilding(ushort buildingId)
+        {
+            if (_buildingManager.m_buildings.m_buffer[buildingId].m_flags != 0)
+            {
+                var info = _buildingManager.m_buildings.m_buffer[buildingId].Info;
+                if (info.m_buildingAI.CheckBulldozing(buildingId, ref _buildingManager.m_buildings.m_buffer[buildingId]) == ToolBase.ToolErrors.None)
+                {
+                    _buildingManager.ReleaseBuilding(buildingId);
+                }
+            }
+
+            yield return (object) 0;
         }
 
         private List<ushort> FindAbandonedBuildings()
         {
-            var buildingIds = new List<ushort>(_observer.BuildingsIds);
+            var buildingIds = new List<ushort>(_buildingObserver.BuildingsIds);
             var abandonedBuildings = new List<ushort>();
 
             foreach (var buildingId in buildingIds)
             {
                 var building = _buildingManager.m_buildings.m_buffer[buildingId];
-                if (building.m_flags.IsFlagSet(Building.Flags.Abandoned)) abandonedBuildings.Add(buildingId);
+                if (building.m_flags.IsFlagSet(Building.Flags.Abandoned))
+                {
+                    abandonedBuildings.Add(buildingId);
+                }
             }
 
             return abandonedBuildings;
@@ -89,16 +117,17 @@ namespace AutomaticBulldozer.Source
         {
             var buildingIds = new List<ushort>();
             for (var i = 0; i < _buildingManager.m_buildings.m_buffer.Length; i++)
-                if (_buildingManager.m_buildings.m_buffer[i].m_flags != Building.Flags.None &&
-                    !Building.Flags.Original.IsFlagSet(_buildingManager.m_buildings.m_buffer[i].m_flags))
+                if (_buildingManager.m_buildings.m_buffer[i].m_flags != Building.Flags.None && !Building.Flags.Original.IsFlagSet(_buildingManager.m_buildings.m_buffer[i].m_flags))
+                {
                     buildingIds.Add((ushort) i);
+                }
             return buildingIds;
         }
 
         public void Destroy()
         {
             Timer.SimulationSecondPassed -= OnSimulationSecondPassed;
-            _observer.Destroy();
+            _buildingObserver.Destroy();
         }
     }
 
@@ -113,7 +142,7 @@ namespace AutomaticBulldozer.Source
             BindEvents();
         }
 
-        public List<ushort> BuildingsIds { get; set; }
+        public List<ushort> BuildingsIds { get; private set; }
 
         private void BindEvents()
         {
@@ -121,12 +150,12 @@ namespace AutomaticBulldozer.Source
             _buildingManager.EventBuildingReleased += OnBuildingReleased;
         }
 
-        public void OnBuildingCreated(ushort id)
+        private void OnBuildingCreated(ushort id)
         {
             BuildingsIds.Add(id);
         }
 
-        public void OnBuildingReleased(ushort id)
+        private void OnBuildingReleased(ushort id)
         {
             BuildingsIds.Remove(id);
         }
@@ -155,6 +184,7 @@ namespace AutomaticBulldozer.Source
                 {
                     SimulationSecondPassed(this, EventArgs.Empty);
                 }
+
                 _counter = 0;
             }
             else
