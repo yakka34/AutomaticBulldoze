@@ -51,7 +51,8 @@ namespace AutomaticBulldoze.Source
         {
             _buildingManager = Singleton<BuildingManager>.instance;
             _simulationManager = Singleton<SimulationManager>.instance;
-            _buildingObserver = new BuildingObserver(FindExistingBuildings());
+            _buildingObserver = new BuildingObserver();
+            _buildingObserver.BuildingsIds.UnionWith(FindExistingBuildings());
             BindEvents();
         }
 
@@ -96,10 +97,10 @@ namespace AutomaticBulldoze.Source
             yield return (object) 0;
         }
 
-        private List<ushort> FindAbandonedBuildings()
+        private HashSet<ushort> FindAbandonedBuildings()
         {
-            var buildingIds = new List<ushort>(_buildingObserver.BuildingsIds);
-            var abandonedBuildings = new List<ushort>();
+            var buildingIds = new HashSet<ushort>(_buildingObserver.BuildingsIds);
+            var abandonedBuildings = new HashSet<ushort>();
 
             foreach (var buildingId in buildingIds)
             {
@@ -113,9 +114,9 @@ namespace AutomaticBulldoze.Source
             return abandonedBuildings;
         }
 
-        private List<ushort> FindExistingBuildings()
+        private HashSet<ushort> FindExistingBuildings()
         {
-            var buildingIds = new List<ushort>();
+            var buildingIds = new HashSet<ushort>();
             for (var i = 0; i < _buildingManager.m_buildings.m_buffer.Length; i++)
                 if (_buildingManager.m_buildings.m_buffer[i].m_flags != Building.Flags.None && !Building.Flags.Original.IsFlagSet(_buildingManager.m_buildings.m_buffer[i].m_flags))
                 {
@@ -135,14 +136,14 @@ namespace AutomaticBulldoze.Source
     {
         private readonly BuildingManager _buildingManager;
 
-        public BuildingObserver(List<ushort> buildingsIds)
+        public HashSet<ushort> BuildingsIds { get; private set; }
+
+        public BuildingObserver()
         {
-            BuildingsIds = buildingsIds;
+            BuildingsIds = new HashSet<ushort>();
             _buildingManager = Singleton<BuildingManager>.instance;
             BindEvents();
         }
-
-        public List<ushort> BuildingsIds { get; private set; }
 
         private void BindEvents()
         {
